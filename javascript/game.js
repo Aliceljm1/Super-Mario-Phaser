@@ -155,10 +155,12 @@ function preload() {
     this.load.bitmapFont('carrier_command', 'assets/fonts/carrier_command.png', 'assets/fonts/carrier_command.xml');
 
     // Load plugins
-    this.load.plugin('rexvirtualjoystickplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexvirtualjoystickplugin.min.js', true);
-    this.load.plugin('rexcheckboxplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexcheckboxplugin.min.js', true);
-    this.load.plugin('rexsliderplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexsliderplugin.min.js', true);
-    this.load.plugin('rexkawaseblurpipelineplugin', 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexkawaseblurpipelineplugin.min.js', true);
+    // 使用 jsDelivr 的 npm CDN，加速并确保国内可访问
+    const REX_CDN_BASE = 'https://cdn.jsdelivr.net/gh/rexrainbow/phaser3-rex-notes/dist/';
+    this.load.plugin('rexvirtualjoystickplugin', REX_CDN_BASE + 'rexvirtualjoystickplugin.min.js', true);
+    this.load.plugin('rexcheckboxplugin',       REX_CDN_BASE + 'rexcheckboxplugin.min.js',       true);
+    this.load.plugin('rexsliderplugin',         REX_CDN_BASE + 'rexsliderplugin.min.js',         true);
+    this.load.plugin('rexkawaseblurpipelineplugin', REX_CDN_BASE + 'rexkawaseblurpipelineplugin.min.js', true);
 
     isLevelOverworld = Phaser.Math.Between(0, 100) <= 84;
 
@@ -344,17 +346,24 @@ function create() {
 }
 
 function createControls() {
+    const joystickPlugin = this.plugins.get('rexvirtualjoystickplugin');
 
-    this.joyStick = this.plugins.get('rexvirtualjoystickplugin').add(this, {
-        x: screenWidth * 0.118,
-        y: screenHeight / 1.68,
-        radius: mobileDevice ? 100 : 0,
-        base: this.add.circle(0, 0, mobileDevice ? 75 : 0, 0x0000000, 0.05),
-        thumb: this.add.circle(0, 0, mobileDevice ? 25 : 0, 0xcccccc, 0.2),
-        // dir: '8dir',   // 'up&down'|0|'left&right'|1|'4dir'|2|'8dir'|3
-        // forceMin: 16,
-        // enable: true
-    });
+    // 插件可能因网络问题加载失败，做一下兜底处理
+    if (joystickPlugin && joystickPlugin.add) {
+        this.joyStick = joystickPlugin.add(this, {
+            x: screenWidth * 0.118,
+            y: screenHeight / 1.68,
+            radius: mobileDevice ? 100 : 0,
+            base: this.add.circle(0, 0, mobileDevice ? 75 : 0, 0x0000000, 0.05),
+            thumb: this.add.circle(0, 0, mobileDevice ? 25 : 0, 0xcccccc, 0.2),
+            // dir: '8dir',   // 'up&down'|0|'left&right'|1|'4dir'|2|'8dir'|3
+            // forceMin: 16,
+            // enable: true
+        });
+    } else {
+        // 如果插件不存在，降级为键盘控制
+        console.warn('rexvirtualjoystickplugin 加载失败，已回退到仅键盘控制');
+    }
 
     // Set control keys
 
