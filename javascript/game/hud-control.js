@@ -107,9 +107,12 @@ function gameOverScreen(outOfTime=false) {
         duration: 200,
         alpha: 1
     });
-    this.add.bitmapText(screenCenterX, screenHeight / 3, 'carrier_command', outOfTime ? 'TIME UP' : 'GAME OVER', screenWidth / 30).setOrigin(0.5).depth = 5;
-    this.add.bitmapText(screenCenterX, screenHeight / 2, 'carrier_command', '> PLAY AGAIN', screenWidth / 50).setOrigin(0.5).setInteractive().on('pointerdown', () => location.reload()).depth = 5;
-    this.add.bitmapText(screenCenterX, screenHeight / 1.7, 'carrier_command', '> SCREENSHOT', screenWidth / 50).setOrigin(0.5).setInteractive().on('pointerdown', () => getScreenshot()).depth = 5;
+    const bigStyle = { fontFamily: 'Arial, Microsoft YaHei, sans-serif', fontSize: screenWidth / 30, color: '#ffffff', align: 'center' };
+    const smallStyle = { fontFamily: 'Arial, Microsoft YaHei, sans-serif', fontSize: screenWidth / 50, color: '#ffffff', align: 'center' };
+
+    this.add.text(screenCenterX, screenHeight / 3, outOfTime ? '时间到' : '游戏结束', bigStyle).setOrigin(0.5).depth = 5;
+    this.add.text(screenCenterX, screenHeight / 2, '》再来一次', smallStyle).setOrigin(0.5).setInteractive().on('pointerdown', () => location.reload()).depth = 5;
+    this.add.text(screenCenterX, screenHeight / 1.7, '》截图', smallStyle).setOrigin(0.5).setInteractive().on('pointerdown', () => getScreenshot()).depth = 5;
 }
 
 function gameOverFunc() {
@@ -172,7 +175,7 @@ function winScreen() {
         duration: 300,
         alpha: 1
     });
-    this.add.bitmapText(screenCenterX, screenHeight / 3, 'carrier_command', 'YOU WON!', screenWidth / 30).setOrigin(0.5).depth = 5;
-    this.add.bitmapText(screenCenterX, screenHeight / 2, 'carrier_command', '> PLAY AGAIN', screenWidth / 50).setOrigin(0.5).setInteractive().on('pointerdown', () => location.reload()).depth = 5;
-    this.add.bitmapText(screenCenterX, screenHeight / 1.7, 'carrier_command', '> SCREENSHOT', screenWidth / 50).setOrigin(0.5).setInteractive().on('pointerdown', () => getScreenshot()).depth = 5;
+    this.add.text(screenCenterX, screenHeight / 3, '你赢了！', bigStyle).setOrigin(0.5).depth = 5;
+    this.add.text(screenCenterX, screenHeight / 2, '》再来一次', smallStyle).setOrigin(0.5).setInteractive().on('pointerdown', () => location.reload()).depth = 5;
+    this.add.text(screenCenterX, screenHeight / 1.7, '》截图', smallStyle).setOrigin(0.5).setInteractive().on('pointerdown', () => getScreenshot()).depth = 5;
 }

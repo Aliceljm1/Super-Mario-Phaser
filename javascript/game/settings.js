@@ -248,6 +248,35 @@ function drawSettingsMenu() {
     // 调整深度以确保在菜单上层
     resetBtn.depth = 5;
     this.settingsMenuObjects.add(resetBtn);
+
+    // ================= 关卡选择滑块 =================
+    const maxLevel = 10;
+    const currentLevel = localStorage.getItem('level-index') ? parseInt(localStorage.getItem('level-index')) : 1;
+
+    let levelSliderDot = this.add.circle(screenWidth / 5.15, screenHeight / 1.25, screenWidth / 115, 0xffffff, 0.75);
+    levelSliderDot.slider = this.plugins.get('rexsliderplugin').add(levelSliderDot, {
+        endPoints: [
+            { x: levelSliderDot.x - screenWidth / 9.5, y: levelSliderDot.y },
+            { x: levelSliderDot.x + screenWidth / 9.5, y: levelSliderDot.y }
+        ],
+        value: (currentLevel - 1) / (maxLevel - 1)
+    });
+    levelSliderDot.depth = 5;
+    this.settingsMenuObjects.add(levelSliderDot);
+
+    let levelSliderBar = this.add.graphics();
+    levelSliderBar.lineStyle(5, 0x373737, 1).strokePoints(levelSliderDot.slider.endPoints).depth = 4;
+    this.settingsMenuObjects.add(levelSliderBar);
+
+    let levelSliderText = this.add.text(screenWidth / 5.15, screenHeight / 1.4, '关卡：' + currentLevel, { fontFamily: 'pixel_nums', fontSize: (screenWidth / 60), align: 'center'}).setOrigin(0.5, 0);
+    levelSliderText.depth = 5;
+    this.settingsMenuObjects.add(levelSliderText);
+
+    levelSliderDot.slider.on('valuechange', function() {
+        const lvl = Math.round(levelSliderDot.slider.value * (maxLevel - 1)) + 1;
+        levelSliderText.setText('关卡：' + lvl);
+        localStorage.setItem('level-index', lvl);
+    });
 }
 
 function applySettings() {

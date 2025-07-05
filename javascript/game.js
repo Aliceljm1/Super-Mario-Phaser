@@ -51,8 +51,8 @@ var emptyBlocksList = [];
 
 var player;
 var playerController;
-// 初始玩家形态：0=小、1=长大、2=火球
-var playerState = 0; // 改为火球马里奥起步
+// 初始玩家形态：0=小、1=大、2=火球  (※ 当前代码仅支持这三种形态)
+var playerState = 0; 
 var playerInvulnerable = false;
 var playerBlocked = false;
 var playerFiring = false;
@@ -82,6 +82,14 @@ var gameOver = false;
 var gameWinned = false;
 
 var game = new Phaser.Game(config);
+
+// ================= 空洞控制参数 =================
+// 空洞出现概率（0~1 之间）。0.1 表示 10% 概率生成空洞
+var HOLE_CHANCE = 0.30;
+
+// 空洞宽度 = HOLE_WIDTH_PIECES * platformPiecesWidth
+// 例如设置为 1 表示 1 段宽度，2 表示 2 段宽度
+var HOLE_WIDTH_PIECES = 1.6;
 
 function isMobileDevice() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -312,6 +320,71 @@ function initSounds() {
 }
 
 function create() {
+    // ===== 弱视训练：红白条纹背景 =====
+    // 生成一个 20×20 的红白竖条纹纹理，并贴满屏幕。
+    const stripeKey = 'rw_stripes';
+    if (!this.textures.exists(stripeKey)) {
+        const g = this.add.graphics();
+        // 左半部分红色
+        g.fillStyle(0xff0000, 1);
+        g.fillRect(0, 0, 10, 20);
+        // 右半部分白色
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(10, 0, 10, 20);
+        g.generateTexture(stripeKey, 20, 20);
+        g.destroy();
+    }
+
+    // 将条纹纹理作为 TileSprite 铺满整个视口，固定在相机下方（模式0：颜色对比训练）
+    this.amblyopiaBg = this.add.tileSprite(0, 0, screenWidth, screenHeight, stripeKey)
+        .setOrigin(0)
+        .setScrollFactor(0)
+        .setDepth(-0.5);
+
+    // 模式2：红绿旋转条纹纹理
+    if (!this.textures.exists('rg_stripes')) {
+        const g2 = this.add.graphics();
+        g2.fillStyle(0xff0000, 1);
+        g2.fillRect(0, 0, 15, 30);
+        g2.fillStyle(0x00ff00, 1);
+        g2.fillRect(15, 0, 15, 30);
+        g2.generateTexture('rg_stripes', 30, 30);
+        g2.destroy();
+    }
+    this.rotateBg = this.add.tileSprite(0, 0, screenWidth, screenHeight, 'rg_stripes')
+        .setOrigin(0)
+        .setScrollFactor(0)
+        .setDepth(-0.5)
+        .setVisible(false);
+
+    // 模式1：红蓝闪烁背景（使用 Graphics 动态填充）
+    this.flashBg = this.add.graphics().setScrollFactor(0).setDepth(-0.5);
+    this.flashBg.setVisible(false);
+
+    // ===== 模式切换控制 =====
+    this.amblyopiaBgSpeed = 0.6;           // 模式0 滚动速度
+    this.rotateBgRotateSpeed = 0.15;       // 模式2 旋转速度 (度/帧)
+    this.currentTherapyMode = 0;           // 0: 红白条纹 1: 红蓝闪烁 2: 红绿旋转
+
+    // 定时切换模式
+    this.time.addEvent({
+        delay: 10000,  // 10 秒
+        callback: () => {
+            // 隐藏全部
+            this.amblyopiaBg.setVisible(false);
+            this.flashBg.setVisible(false);
+            this.rotateBg.setVisible(false);
+
+            this.currentTherapyMode = (this.currentTherapyMode + 1) % 3;
+
+            if (this.currentTherapyMode === 0) this.amblyopiaBg.setVisible(true);
+            else if (this.currentTherapyMode === 1) this.flashBg.setVisible(true);
+            else this.rotateBg.setVisible(true);
+        },
+        callbackScope: this,
+        loop: true
+    });
+
     playerController = {
         time: {
             leftDown: 0,
@@ -500,11 +573,20 @@ function generateLevel() {
     }
 
     for (i=0; i <= platformPieces; i++) {
-        // Holes will have a 10% chance of spawning
-        let number = Phaser.Math.Between(0, 100);
+        // --- 随机决定本段是否生成空洞 ---
+        const willCreateHole = Math.random() < HOLE_CHANCE;
 
-        // Check if its not a hole, this means is not that 20%, is not in the spawn safe area and is not close to the end castle.
-        if (pieceStart >= (lastWasHole > 0 || lastWasStructure > 0 || worldWidth - platformPiecesWidth * 4) || number <= 0 || pieceStart <= screenWidth * 2 || pieceStart >= worldWidth - screenWidth * 2) {
+        /*
+           生成空洞需同时满足：
+           1. willCreateHole === true（命中概率）
+           2. 不在出生保护区 / 终点保护区
+           3. 前一段不是空洞，且前一段未生成建筑（避免连续空洞或与建筑冲突）
+        */
+
+        const inSafeZone   = pieceStart <= screenWidth * 2 || pieceStart >= worldWidth - screenWidth * 2;
+        const nearCastle   = pieceStart >= worldWidth - platformPiecesWidth * 4;
+
+        if (inSafeZone || nearCastle || !willCreateHole || lastWasHole > 0 || lastWasStructure > 0) {
             lastWasHole--;
 
             //> Create platform
@@ -527,15 +609,21 @@ function generateLevel() {
                 lastWasStructure--;
             }
         } else {
-            // Save every hole start and end for later use
-            worldHolesCoords.push({ start: pieceStart, 
-                end: pieceStart + platformPiecesWidth * 2});
+            // 保存当前空洞的起止坐标，供后续随机放置物体时避开
+            worldHolesCoords.push({
+                start: pieceStart,
+                end  : pieceStart + platformPiecesWidth * HOLE_WIDTH_PIECES
+            });
             
-            lastWasHole = 2;
-            this.fallProtectionGroup.add(this.add.rectangle(pieceStart + platformPiecesWidth * 2, screenHeight - platformHeight, 5, 5).setOrigin(0, 1));
-            this.fallProtectionGroup.add(this.add.rectangle(pieceStart, screenHeight - platformHeight, 5, 5).setOrigin(1, 1));
+            lastWasHole = 2; // 连续空洞冷却
+
+            // 在空洞左右各放一个不可见小矩形，用于碰撞检测防掉出世界
+            const holeEndX = pieceStart + platformPiecesWidth * HOLE_WIDTH_PIECES;
+            this.fallProtectionGroup.add(this.add.rectangle(holeEndX, screenHeight - platformHeight, 5, 5).setOrigin(0, 1));
+            this.fallProtectionGroup.add(this.add.rectangle(pieceStart,  screenHeight - platformHeight, 5, 5).setOrigin(1, 1));
         }
-        pieceStart += platformPiecesWidth * 2;
+        // 处理完当前段后，将指针移动到下一段起点
+        pieceStart += platformPiecesWidth * HOLE_WIDTH_PIECES;
     }
 
     this.startScreenTrigger = this.add.tileSprite(screenWidth, screenHeight - platformHeight, 32, 28, 'horizontal-tube').setScale(screenHeight / 345).setOrigin(1, 1);
@@ -897,6 +985,26 @@ function collectCoin(player, coin) {
 
 function update(delta) {
     if (gameOver || gameWinned) return;
+
+    // ===== 视觉训练背景动画 =====
+    switch (this.currentTherapyMode) {
+        case 0: // 红白条纹滚动
+            this.amblyopiaBg.tilePositionX += this.amblyopiaBgSpeed;
+            break;
+        case 1: { // 红蓝闪烁
+            const phase = this.time.now * 0.005;
+            const r = Math.floor((Math.sin(phase) * 0.5 + 0.5) * 255);
+            const b = Math.floor((Math.sin(phase + Math.PI) * 0.5 + 0.5) * 255);
+            const color = (r << 16) | b;
+            this.flashBg.clear();
+            this.flashBg.fillStyle(color, 1);
+            this.flashBg.fillRect(0, 0, screenWidth, screenHeight);
+            break;
+        }
+        case 2: // 红绿旋转条纹
+            this.rotateBg.angle += this.rotateBgRotateSpeed;
+            break;
+    }
 
     updatePlayer.call(this, delta);
 

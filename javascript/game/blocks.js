@@ -1,5 +1,13 @@
-
 const mushroomsVelocityX = screenWidth / 15;
+
+// ==============================
+// 全局掉落概率设置（单位：%）
+// index 0 -> 金币   index 1 -> 长大蘑菇
+// 火花（fireFlower）的概率将自动计算为 100 - coinProb - mushroomProb
+// 例如 [90, 6] 表示：90% 金币、6% 蘑菇、其余 4% 火花。
+// 如需调整概率，只需修改数组即可。
+// ==============================
+var BLOCK_REWARD_PROBS = [10, 50];
 
 function revealHiddenBlock(player, block) {
     if (!player.body.blocked.up)
@@ -29,8 +37,14 @@ function revealHiddenBlock(player, block) {
         onCompleteScope: this
     });
 
-    let random = Phaser.Math.Between(0, 100);
-    if (random < 90) {
+    // --- 根据概率表决定掉落物 ---
+    const coinProb = BLOCK_REWARD_PROBS[0];
+    const mushroomProb = BLOCK_REWARD_PROBS[1];
+    const fireFlowerProb = 100 - coinProb - mushroomProb; // 自动补足
+
+    let random = Phaser.Math.Between(0, 99);
+
+    if (random < coinProb) {
         addToScore.call(this, 200, block);
         this.coinSound.play();
         let coin = this.physics.add.sprite(block.getBounds().x, block.getBounds().y, 'coin').setScale(screenHeight / 357).setOrigin(0).anims.play('coin-default');
@@ -57,7 +71,7 @@ function revealHiddenBlock(player, block) {
             onCompleteScope: this
         });
 
-    } else if (random >= 90 && random < 96 ) {
+    } else if (random < coinProb + mushroomProb ) {
         this.powerUpAppearsSound.play();
         let mushroom = this.physics.add.sprite(block.getBounds().x, block.getBounds().y, 'super-mushroom').setScale(screenHeight / 345).setOrigin(0).setBounce(1, 0);
         this.tweens.add({
