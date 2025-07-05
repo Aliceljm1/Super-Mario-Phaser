@@ -1,8 +1,21 @@
-
 function createPlayer() {
-    // Draw player
-    player = this.physics.add.sprite( /*screenWidth * 1.5*/ startOffset, screenHeight - platformHeight, 'mario').setOrigin(1).setBounce(0)
-    .setCollideWorldBounds(true).setScale(screenHeight / 376);
+    // 根据当前 playerState 选择贴图
+    let startTexture = playerState === 0 ? 'mario' : (playerState === 1 ? 'mario-grown' : 'mario-fire');
+
+    // 创建玩家精灵
+    player = this.physics.add.sprite(startOffset, screenHeight - platformHeight, startTexture)
+        .setOrigin(1)
+        .setBounce(0)
+        .setCollideWorldBounds(true)
+        .setScale(screenHeight / 376);
+
+    // 调整碰撞盒：大尺寸形态需要更高的 hitbox
+    if (playerState > 0) {
+        player.body.setSize(14, 32).setOffset(2, 0);
+    } else {
+        player.body.setSize(14, 16).setOffset(1.3, 0.5);
+    }
+
     player.depth = 3;
     /*this.cameras.main.startFollow(player);
     playerState = 2;*/

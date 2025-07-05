@@ -51,7 +51,8 @@ var emptyBlocksList = [];
 
 var player;
 var playerController;
-var playerState = 0;
+// 初始玩家形态：0=小、1=长大、2=火球
+var playerState = 0; // 改为火球马里奥起步
 var playerInvulnerable = false;
 var playerBlocked = false;
 var playerFiring = false;

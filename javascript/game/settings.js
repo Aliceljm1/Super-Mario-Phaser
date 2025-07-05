@@ -1,4 +1,3 @@
-
 var keydownHandler;
 
 function showSettings() {
@@ -49,7 +48,7 @@ function drawSettingsMenu() {
     settingsXbutton.depth = 5;
     this.settingsMenuObjects.add(settingsXbutton);
 
-    let settingsText = this.add.text(screenWidth / 6, screenHeight - (screenHeight* 0.85), 'Settings', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 45), align: 'center'});
+    let settingsText = this.add.text(screenWidth / 6, screenHeight - (screenHeight* 0.85), '设置', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 45), align: 'center'});
     settingsText.depth = 5;
     this.settingsMenuObjects.add(settingsText);
 
@@ -65,7 +64,7 @@ function drawSettingsMenu() {
         localStorage.setItem('music-enabled', musicCheckbox.checked)
     });
 
-    let musicCheckboxText = this.add.text(screenWidth / 8, screenHeight / 2.9, 'Music', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 55), align: 'center'}).setOrigin(0.5, 0).setInteractive().on('pointerdown', () => musicCheckbox.toggleChecked());;
+    let musicCheckboxText = this.add.text(screenWidth / 8, screenHeight / 2.9, '音乐', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 55), align: 'center'}).setOrigin(0.5, 0).setInteractive().on('pointerdown', () => musicCheckbox.toggleChecked());;
     musicCheckboxText.setOrigin(0, 0.4).depth = 5;
     this.settingsMenuObjects.add(musicCheckboxText);
 
@@ -81,7 +80,7 @@ function drawSettingsMenu() {
         localStorage.setItem('effects-enabled', effectsCheckbox.checked)
     });
 
-    let effectsCheckboxText = this.add.text(screenWidth / 8, screenHeight / 2.3, 'Effects', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 55), align: 'center'}).setOrigin(0.5, 0).setInteractive().on('pointerdown', () => effectsCheckbox.toggleChecked());
+    let effectsCheckboxText = this.add.text(screenWidth / 8, screenHeight / 2.3, '音效', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 55), align: 'center'}).setOrigin(0.5, 0).setInteractive().on('pointerdown', () => effectsCheckbox.toggleChecked());
     effectsCheckboxText.setOrigin(0, 0.4).depth = 5;
     this.settingsMenuObjects.add(effectsCheckboxText);
 
@@ -105,7 +104,7 @@ function drawSettingsMenu() {
     sliderBar.lineStyle(5, 0x373737, 1).strokePoints(sliderDot.slider.endPoints).depth = 4;
     this.settingsMenuObjects.add(sliderBar);
 
-    let sliderDotText = this.add.text(screenWidth / 5.15, screenHeight / 1.85, 'General volume', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 60), align: 'center'}).setOrigin(0.5, 0);
+    let sliderDotText = this.add.text(screenWidth / 5.15, screenHeight / 1.85, '总体音量', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 60), align: 'center'}).setOrigin(0.5, 0);
     sliderDotText.depth = 5;
     this.settingsMenuObjects.add(sliderDotText);
 
@@ -135,7 +134,7 @@ function drawSettingsMenu() {
 
     //> Controls
 
-    let controlsText = this.add.text(screenWidth / 1.5, screenHeight - (screenHeight* 0.85), 'Controls', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 45), align: 'center'});
+    let controlsText = this.add.text(screenWidth / 1.5, screenHeight - (screenHeight* 0.85), '控制', { fontFamily: 'pixel_nums', fontSize: (screenWidth / 45), align: 'center'});
     controlsText.depth = 5;
     this.settingsMenuObjects.add(controlsText);
 
@@ -222,7 +221,7 @@ function drawSettingsMenu() {
                 let key = event.keyCode;
     
                 if (Object.values(controlKeys).some(({ keyCode }) => keyCode === key)) {
-                    alert('Key is already in use!');
+                    alert('该按键已被占用！');
                     text.setText(displayChar(controlKeys[control].keyCode));
                     return;
                 }
@@ -234,6 +233,21 @@ function drawSettingsMenu() {
             document.addEventListener('keydown', keydownHandler);
         }.bind(this));
     });
+
+    // 恢复默认按钮
+    const resetBtn = this.add.text(screenWidth/1.5, screenHeight*0.1,
+        '重置', { fontFamily:'pixel_nums', fontSize:screenWidth/50 })
+        .setInteractive()
+        .on('pointerdown', () => {
+            // 1. 清除本地存储的键位
+            ['JUMP','DOWN','LEFT','RIGHT','FIRE','PAUSE'].forEach(k => localStorage.removeItem(k));
+            // 2. 直接刷新页面或重新载入场景
+            location.reload();           // 简单粗暴
+            // 若想更优雅，可重新调用 applySettings / createControls
+        });
+    // 调整深度以确保在菜单上层
+    resetBtn.depth = 5;
+    this.settingsMenuObjects.add(resetBtn);
 }
 
 function applySettings() {
